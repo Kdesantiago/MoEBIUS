@@ -321,7 +321,7 @@ ELBO_CCLBM <- function(params){
 #' params <- cocoLBMoE_reg_fixe(X, y, K = 2, Q = 3)
 #' }
 #' @export
-cocoLBMoE_reg_fixe <- function(X,y,K,Q,learning_rate=1e-3,iter_max=10, init_type='Kmeans'){
+MoEBIUS_reg_fixe <- function(X,y,K,Q,learning_rate=1e-3,iter_max=10, init_type='Kmeans'){
 
   # Supervised cocoLBM
   params= initializationCCLBM(X,y,K,Q,learning_rate,iter_max, init_type)
@@ -354,20 +354,14 @@ cocoLBMoE_reg_fixe <- function(X,y,K,Q,learning_rate=1e-3,iter_max=10, init_type
 #' @param X_test A matrix of new predictor data.
 #' @return A vector of predicted responses.
 #' @export
-prediction_cocoLBMoE_reg <- function(params, X_test){
+prediction_MoEBIUS_reg <- function(params, X_test){
   tau <- Softmax_log(X_test %*% params$pi_k)
   y_par_classe <- sapply(1:params$K, function(k){X_test %*% params$nu[k,,] %*% params$beta[k,]})
   y <- apply(tau * y_par_classe,1,sum)
   return(y)
 }
 
-#' Ajuste un modèle Co-CoLBMoE pour la régression avec sélection des meilleurs paramètres
-#'
-#' Cette fonction ajuste un modèle Co-Conditional Latent Block Model of Experts (Co-CoLBMoE)
-#' pour une tâche de régression en fonction d'un ensemble de classes d'individus (`K_set`)
-#' et de groupes de variables (`Q_set`). Elle permet la validation croisée pour optimiser
-#' les paramètres et sauvegarde tous les modèles ajustés si demandé.
-#'
+
 #' Mixture Of Experts and BIclustering Unified Strategy (MoEBIUS) for Regression
 #'
 #' Fits a MoEBIUS model to the provided data, selecting the best model based on ELBO and ICL criteria.
@@ -391,10 +385,10 @@ prediction_cocoLBMoE_reg <- function(params, X_test){
 #'
 #' @examples
 #' \dontrun{
-#' model <- cocoLBMoE_reg(X, y, K_set = 2:4, Q_set = 1:3, Cross_val = TRUE)
+#' model <- MoEBIUS_reg(X, y, K_set = 2:4, Q_set = 1:3, Cross_val = TRUE)
 #' }
 #' @export
-cocoLBMoE_reg <- function(X,y,K_set,Q_set,learning_rate=1e-3,iter_max=10, init_type='Kmeans',
+MoEBIUS_reg <- function(X,y,K_set,Q_set,learning_rate=1e-3,iter_max=10, init_type='Kmeans',
                           ALL = FALSE,Cross_val=FALSE){
   output <- list()
 
@@ -417,14 +411,14 @@ cocoLBMoE_reg <- function(X,y,K_set,Q_set,learning_rate=1e-3,iter_max=10, init_t
           y_test = y[idx_test]
           X_train = X[-idx_test,]
           y_train = y[-idx_test]
-          model <- cocoLBMoE_reg_fixe(X_train,y_train,K,Q,learning_rate,iter_max, init_type)
-          Mat_value[as.character(K),as.character(Q),n_fold] <- mean((prediction_cocoLBMoE_reg(model,X_test) - y_test)**2)
+          model <- MoEBIUS_reg_fixe(X_train,y_train,K,Q,learning_rate,iter_max, init_type)
+          Mat_value[as.character(K),as.character(Q),n_fold] <- mean((prediction_MoEBIUS_reg(model,X_test) - y_test)**2)
         }
       }
     }
     Mat_value <- apply(Mat_value,c(1,2),mean)
     idx_min <- arrayInd(which.min(Mat_value), dim(Mat_value))
-    model_CV <- cocoLBMoE_reg_fixe(X,y,K_set[idx_min[1]],Q_set[idx_min[2]],learning_rate,iter_max, init_type)
+    model_CV <- MoEBIUS_reg_fixe(X,y,K_set[idx_min[1]],Q_set[idx_min[2]],learning_rate,iter_max, init_type)
 
     output$model_CV <- model_CV
   }
@@ -440,7 +434,7 @@ cocoLBMoE_reg <- function(X,y,K_set,Q_set,learning_rate=1e-3,iter_max=10, init_t
   model_best_ICL$ICL <- -Inf
   for(K in K_set){
     for(Q in Q_set){
-      model <- cocoLBMoE_reg_fixe(X,y,K,Q,learning_rate,iter_max, init_type)
+      model <- MoEBIUS_reg_fixe(X,y,K,Q,learning_rate,iter_max, init_type)
       if(ALL){model_save[[iter_save]] <- model;  iter_save = iter_save +1}
       if(model_best_elbo$elbo < model$elbo){model_best_elbo <- model}
       if(model_best_ICL$ICL < model$ICL){model_best_ICL <- model}
