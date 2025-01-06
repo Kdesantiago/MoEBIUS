@@ -339,9 +339,9 @@ MoEBIUS_reg_fixe <- function(X,y,K,Q,learning_rate=1e-3,iter_max=10, init_type='
   }
 
   params$elbo <- ELBO_CCLBM(params)
-  params$ICL <- ELBO_CCLBM(params) -1/2 * p*(params$K-1)*log(params$N) -
+  params$ICL <- ELBO_CCLBM(params) -1/2 * params$p*(params$K-1)*log(params$N) -
     1/2 * params$K*(params$Q-1)*log(params$p) -
-    1/2 * K * Q * log(params$N)
+    1/2 * params$K * params$Q * log(params$N)
   return(params)
 
 }
