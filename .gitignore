@@ -3,3 +3,30 @@
 .Rdata
 .httr-oauth
 .DS_Store
+# LaTeX intermediate files
+*.aux
+*.log
+*.toc
+*.out
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.bbl
+*.blg
+*.nav
+*.snm
+*.vrb
+
+# Temporary files
+*~
+*.bak
+*.tmp
+*.swp
+*.swo
+
+# Output files
+*.dvi
+*.ps
+*.xdv
