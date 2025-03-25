@@ -1,0 +1,23 @@
+\section{Introduction}
+
+
+Since its introduction more than two decades ago \citep{jacobs1991adaptive}
+Mixture of Experts (MoE) models have been widely used in machine learning due to their ability to partition data into meaningful subpopulations and assign specialized models to different regions of the input space. 
+
+Different types of expert
+architectures have been proposed, such as SVMs \citep{Collobert2002}, Gaussian Processes \citep{Tresp2001, Theis2015, Deisenroth2015}, Dirichlet Processes \citep{Shahbaba2009},
+and deep networks.
+
+These models rely on a gating function that dynamically assigns observations to experts, allowing for adaptive learning across heterogeneous datasets. 
+
+Conventional MoE models face challenges in interpretability. MoE models can act as black boxes, making it difficult to extract meaningful insights into how experts contribute to predictions.
+
+To address these issues, we propose the MoEBIUS algorithm, which incorporates a conditional latent block structure into the traditional MoE framework. The key contributions of MoEBIUS are:
+\begin{itemize}
+    \item \textbf{Structured Expert Assignment:} The gating network is enhanced with a conditional latent block model, allowing it to group variables into coherent components. This leads to more interpretable expert assignments.
+    \item \textbf{Redundancy Reduction:} By clustering correlated features, MoEBIUS minimizes redundant information, improving both computational efficiency and model generalization.
+    \item \textbf{Improved Predictive Performance:} The integration of latent block models refines expert specialization, leading to higher accuracy in predictive tasks.
+\end{itemize}
+
+The remainder of this paper is structured as follows: Section 2 is a background section presenting the  context of Mixture of Experts  and how our proposal relates to other close work,  Section 3 discusses the methodology and formalizes the MoEBIUS model.  
+Section 4 provides experimental validation, comparing MoEBIUS against standard MoE approaches. Finally, Section 5 concludes with a discussion on potential applications and future research directions.

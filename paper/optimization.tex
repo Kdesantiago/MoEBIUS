@@ -1,0 +1,107 @@
+\section{Optimization via SEM-Gibbs algorithm}
+
+The Variational EM, as applied in the \textit{mimiSBM} model (Section \ref{sec: VEM_mimiSBM_freq}), is not utilized in this context due to the increased computational complexity. This complexity stems from the dependency between the latent variables forming the tensor $\bW$, which is introduced by the regression component.
+
+However, Gibbs sampling EM emerges as a viable alternative. This approach relies on sampling from the conditional distributions of each variable given the others, which, in our case, are known. This makes Gibbs sampling a practical and implementable strategy for optimizing the model while managing the latent structure effectively.
+
+Through a stochastic EM formulation based on Gibbs sampling, we can estimate latent variables and model parameters for Latent Block Models \citep{keribin2012model}. Moreover, Gibbs sampling is a widely used Monte Carlo Markov Chain method for Bayesian inference in complex statistical models \citep{gelfand1990illustration, yildirim2012bayesian, tobin2024co}. 
+
+As in classical EM algorithms, this optimization consists of two steps: the \textit{ Stochastic Expectation Gibbs-sampling step} (SE-Gibbs step) and the \textit{Maximization step} (M step).
+%
+We begin by defining the objective function to be optimized at each iteration of the algorithm:
+\begin{equation}
+    \mathcal{J}\left(\bpi, \brho, \bbeta \mid \bpi^{(t)}, \brho^{(t)}, \bbeta^{(t)} \right) = \mathbb{E}_{\bZ,\bW \sim \p\left(. \mid \by, \bX, \bpi^{(t)}, \brho^{(t)}, \bbeta^{(t)} \right)} \left[ \log \p \left(\by,\bZ,\bW \mid \bX, \bpi, \brho, \bbeta  \right)\right].
+\end{equation}
+
+
+\subsection{Gibbs-sampling Expectation step}
+At step (t) of the algorithm, in Gibbs-sampling Expectation step, we first compute the following probabilities:
+\begin{equation}
+    \tau_{ik}^{(t+1)} = \dfrac{\dfrac{e^{\bX_i \bpi^{(t)}_{\bullet k}}}{\sum_{k'} e^{\bX_i \bpi^{(t)}_{\bullet k'}}} \p\left( y_i \mid \bX_i, Z_{ik}=1,\hat{\bW}^{(t)}_{k }, \bbeta^{(t)}_k\right) }
+    {\sum_{k'} \dfrac{e^{\bX_i \bpi^{(t)}_{\bullet k'}}}{\sum_{l} e^{\bX_i \bpi^{(t)}_{\bullet l}}} \p\left( y_i \mid \bX_i,Z_{ik'}=1,\hat{\bW}^{(t)}_{k' }, \bbeta^{(t)}_{k'}\right)},
+\label{eq: MoEBIUS_tau}
+\end{equation}
+with $\bpi_{\bullet k} = \left( \pi_{ik} \right)_{i=1:N}$.
+
+Next, we perform a random draw from a multinomial distribution:
+\begin{equation}
+    \hat{\bZ}^{(t+1)}_{i} \sim \M\left(1; \left(\tau^{(t+1)}_{i1},\dots,\tau^{(t+1)}_{iK}\right) \right).
+\end{equation}
+
+Similarly, the same operations are applied to $\boldsymbol{\nu}$ and $\bW$:
+\begin{equation}
+    \nu_{kjs}^{(t+1)} = \dfrac{\rho_{ks}^{(t)} \prod_i^N \p\left(y_i \mid \bX_i,\hat{Z}^{(t+1)}_{ik},W_{kjs}=1,\hat{\bW}^{(t)}_{-kj}, \bbeta^{(t)}_k\right)^{\hat{Z}^{(t+1)}_{ik}} }{\sum_{s'} \rho_{ks'}^{(t)} \prod_i^N \p\left(y_i \mid \bX_i,\hat{Z}^{(t+1)}_{ik},W_{kjs'}=1,\hat{\bW}^{(t)}_{-kj}, \bbeta^{(t)}_k\right)^{\hat{Z}^{(t+1)}_{ik}}},
+    \label{eq: MoEBIUS_nu}
+\end{equation}
+where the tensor $\hat{\bW}^{(t)}_{-kj}$ corresponds to tensor $\hat{\bW}^{(t)}$ with the third dimension element associated with the $k$-th entry of the first dimension and the $j$-th entry of the second removed.
+%
+\begin{equation}
+    \hat{\bW}^{(t+1)}_{kj} \sim \M\left(1; \left(\nu^{(t+1)}_{kj1},\dots,\nu^{(t+1)}_{kjQ}\right) \right).
+\end{equation}
+%
+\subsection{Maximization step}
+Using the results from the SE-Gibbs step, we now estimate the model parameters $\bpi, \brho, (\bbeta_k)_{k=1:K}$.
+
+For the component parameters $\brho$, The estimation follows a natural approach, where, conditionally on community $k$, the estimation is based on counting the number of variables within the component $s$ and dividing by the total number of variables $p$.
+%the estimation is almost identical to that obtained in the optimization of the \textit{Co-coLBM} (Equation \ref{eq: rho_CocoLBM}).
+\begin{align}
+    \rho_{ks}^{(t+1)} &= \dfrac{\sum_{j=1}^p \hat{\bW}_{kjs}^{(t+1)}}{p},  &\forall k \in \{1,\dots,K\},\forall s \in \{1,\dots,Q\}.
+    \label{eq: MoEBIUS_rho}
+\end{align}
+
+The parameters $\bpi$ and $(\bbeta_k)_{k=1:K}$ (for multiclass classification) are estimated using a gradient ascent approach, where a step is performed at each iteration of the \textit{SEM-gibbs} algorithm.
+
+Regarding the logistic regression parameters $\bpi$ on the latent variables $(\bZ_i)_{i=1:N}$:
+\begin{equation}
+    \fracpartial{\mathcal{J}}{\bpi}\left(\bpi, \brho, \bbeta \mid \bpi^{(t)}, \brho^{(t)}, \bbeta^{(t)} \right) = \bX^T \left( \hat{\bZ}^{(t+1)} - \mathbf{S}^{\bpi^{(t)}} \right),
+    \label{eq: MoEBIUS_pi}
+\end{equation}
+with
+\begin{equation}
+    S^{\bpi}_{ik} = \dfrac{e^{\bX_i \bpi_{\bullet k}}}{\sum_{k'} e^{\bX_i \bpi_{\bullet k'}}}.
+\end{equation}
+
+Here, $\hat{\bZ}^{(t+1)}$ represents the "true" community membership matrix, while $\mathbf{S}^{\bpi}$ is an estimate. In other words, the parameters $\bpi$ are optimized to produce predictions consistent with the posterior.
+
+The parameters are updated as follows:
+\begin{equation}
+    \bpi^{(t+1)} =  \bpi^{(t)} + h_t  \fracpartial{\mathcal{J}}{\bpi}\left(\bpi, \brho, \bbeta \mid \bpi^{(t)}, \brho^{(t)}, \bbeta^{(t)} \right),
+\end{equation}
+where $h_t$ is the gradient ascent step size for iteration $t$.
+
+The estimation of parameters $(\bbeta_k)_{k=1:K}$ depends on the problem at hand.
+
+\paragraph{Regression}
+The estimation of $(\bbeta_k)_{k=1:K}$ is given by:
+\begin{equation}
+    \bbeta^{(t+1)}_{k} =  \left( {W_{k }^{(t+1)}}^T \bX^T \operatorname{diag}\left(\hat{\bZ}^{(t+1)}_{\bullet k}\right) \bX \bW^{(t+1)}_{k } \right)^{-1}  {\bW^{(t+1)}_{k }}^T \bX^T \operatorname{diag}\left(\hat{\bZ}^{(t+1)}_{\bullet k}\right) \by,
+    \label{eq: MoEBIUS_beta_reg}
+\end{equation}
+with $\hat{\bZ}^{(t+1)}_{\bullet k} = \left( \hat{\bZ}^{(t+1)}_{ik} \right)_{i=1:N}$.
+This is a weighted least squares estimator, where the weighting is provided by $\hat{\bZ}^{(t+1)}_{\bullet k}$ and the data matrix is $\bX \bW^{(t+1)}_{k }$.
+
+The estimation of $(\sigma_k^2)_{k=1:K}$ is given by:
+\begin{equation}
+    {\sigma_k^2}^{(t+1)} = \dfrac{\sum_{i=1}^N \hat{Z}^{(t+1)}_{ik}\left(y_i - \bX_i \hat{\bW}_{k }^{(t+1)}  \bbeta_k^{(t+1)} \right)^2}{\sum_{i=1}^N \hat{Z}^{(t+1)}_{ik}}.
+    \label{eq: MoEBIUS_sigma_reg}
+\end{equation}
+
+Once again, we find the weighted least squares estimator for ${\sigma_k^2}$.
+
+\paragraph{Multiclass Classification}
+The update for the parameters $(\bbeta_k)_{k=1:K}$ is defined as:
+\begin{equation}
+    \bbeta^{(t+1)}_k =  \bbeta^{(t)}_k + h_t \frac{\partial \mathcal{J}}{\partial \bbeta_k}\left(\bpi, \brho, \bbeta \mid \bpi^{(t)}, \brho^{(t)}, \bbeta^{(t)} \right),
+\end{equation}
+where the gradient is given by:
+\begin{equation}
+    \frac{\partial \mathcal{J}}{\partial \bbeta_k} \left(\bpi, \brho, \bbeta \mid \bpi^{(t+1)}, \brho^{(t+1)}, \bbeta^{(t)} \right) = \left[\left( \bX \hat{\bW}^{(t+1)}_{k }\right)^T \odot \mathbf{1}_{Q,1} \hat{\bZ}_{\bullet k}^{(t+1)^T} \right] \left( \by - \mathbf{S}^{\bbeta_k^{(t)}} \right),
+    \label{eq: MoEBIUS_beta_classif}
+\end{equation}
+with the probability of variable $y_i$ belonging to class $c$, for community $k$ and given observation $\bX_i$, defined as:
+\begin{equation}
+    S^{\bbeta_k}_{ic} = \dfrac{e^{\bX_i \hat{\bW}^{(t+1)}_{k } \bbeta_{k\bullet c}}}{\sum_{c'} e^{\bX_i \hat{\bW}^{(t+1)}_{k } \bbeta_{k\bullet c'}} }.
+\end{equation}
+
+Here, $\mathbf{1}_{Q,1}$ is a matrix of size $Q \times 1$ filled with ones,$\odot$ represents the Hadamard (element-wise) product and $\bbeta_{k\bullet c} = \left( \bbeta_{ksc}\right)_{s=1:Q}$.
+

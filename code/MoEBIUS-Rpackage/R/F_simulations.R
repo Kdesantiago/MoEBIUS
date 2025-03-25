@@ -62,7 +62,7 @@ simu_CCLBM_supervised <- function(N = 1000, p = 10,K = 2,Q = 3,C = 1,pi_k = rep(
     }
   }
 
-  # Simulation des paraètres du vecteur de régression
+  # Simulation des paramètres du vecteur de régression
 
   if(is.null(beta)){
     beta = array(0,dim=c(K,Q,C))
